@@ -1,11 +1,13 @@
 import Link from "next/link";
+import BottomNav from "@/components/BottomNav";
 
 const modules = [
-  ["Skład meczowy", "Ustaw szóstkę, ławkę i formację", "/captain/lineup", "01"],
-  ["Taktyka", "Stałe fragmenty: atak i obrona", "/captain/tactics", "02"],
-  ["Centrum meczu", "Wynik, statystyki i relacja live", "/staff/live", "03"],
-  ["Mój profil", "Zdjęcie, numer i pozycja", "/profile", "04"],
+  ["Centrum zawodnika", "Wiadomości, mecze i odprawa", "/player", "01"],
+  ["Skład meczowy", "Ustaw szóstkę, ławkę i formację", "/captain/lineup", "02"],
+  ["Taktyka", "Stałe fragmenty: atak i obrona", "/captain/tactics", "03"],
+  ["Centrum meczu", "Wynik, statystyki i relacja live", "/staff/live", "04"],
   ["Strefa kibica", "Typowanie i ranking", "/fan/predictions", "05"],
+  ["Panel admina", "Drużyny, mecze, role i komunikaty", "/admin", "06"],
 ] as const;
 
 export default function Home() {
@@ -35,6 +37,7 @@ export default function Home() {
           </Link>
         ))}
       </section>
+      <BottomNav />
     </main>
   );
 }

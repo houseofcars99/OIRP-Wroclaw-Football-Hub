@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./auth.css";
+import "./dashboard.css";
+import "./interaction.css";
 
 export const metadata: Metadata = {
   title: "OIRP Wrocław Football Hub",

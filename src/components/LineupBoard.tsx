@@ -31,6 +31,7 @@ export default function LineupBoard() {
   const [formation, setFormation] = useState("1–2–2");
   const [spots, setSpots] = useState<Spot[]>(() => formations["1–2–2"].map((p, i) => ({...p, playerId: players[i].id})));
   const [published, setPublished] = useState(false);
+  const [selectedSpot, setSelectedSpot] = useState<number | null>(null);
   const starters = useMemo(() => new Set(spots.map(s => s.playerId)), [spots]);
   const bench = players.filter(p => !starters.has(p.id)).slice(0, 5);
 
@@ -58,6 +59,13 @@ export default function LineupBoard() {
     window.addEventListener("pointerup", stop);
   }
 
+  function substitute(playerId: number) {
+    if (selectedSpot === null) return;
+    setSpots(current => current.map((spot, index) => index === selectedSpot ? {...spot, playerId} : spot));
+    setSelectedSpot(null);
+    setPublished(false);
+  }
+
   return (
     <main className="lineupShell">
       <header className="lineupHeader">
@@ -78,7 +86,7 @@ export default function LineupBoard() {
         {spots.map((spot, index) => {
           const player = players.find(p => p.id === spot.playerId)!;
           return (
-            <button key={player.id} className="playerToken" style={{left:`${spot.x}%`, top:`${spot.y}%`}} onPointerDown={e => movePlayer(e, index)}>
+            <button key={player.id} className={`playerToken ${selectedSpot===index?"selected":""}`} style={{left:`${spot.x}%`, top:`${spot.y}%`}} onClick={()=>setSelectedSpot(index)} onPointerDown={e => movePlayer(e, index)}>
               <span className="photo">{player.initials}<i>{player.number}</i></span>
               <strong>{player.shortName}</strong><small>{player.role}</small>
             </button>
@@ -88,7 +96,8 @@ export default function LineupBoard() {
 
       <section className="bench">
         <div className="sectionTitle"><div><p className="eyebrow">ŁAWKA REZERWOWYCH</p><h2>Zmiany</h2></div><span>{bench.length} / 5</span></div>
-        <div className="benchList">{bench.map(player => <div className="benchPlayer" key={player.id}><span className="photo small">{player.initials}<i>{player.number}</i></span><strong>{player.shortName}</strong><small>{player.role}</small></div>)}</div>
+        <p className="lineupHint">{selectedSpot===null?"Dotknij zawodnika na boisku, a potem rezerwowego, aby wykonać zmianę.":"Wybierz zawodnika z ławki do zamiany."}</p>
+        <div className="benchList">{bench.map(player => <button type="button" className="benchPlayer" onClick={()=>substitute(player.id)} key={player.id}><span className="photo small">{player.initials}<i>{player.number}</i></span><strong>{player.shortName}</strong><small>{player.role}</small></button>)}</div>
       </section>
 
       <div className="actions"><button className="secondary" onClick={() => setPublished(false)}>Zapisz roboczo</button><button className="primary" onClick={() => setPublished(true)}>Opublikuj skład</button></div>
