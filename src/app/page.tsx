@@ -14,7 +14,7 @@ export default function Home() {
       <header className="topbar">
         <div className="brandMark">O</div>
         <div><p className="eyebrow">OIRP WROCŁAW</p><h1>Football Hub</h1></div>
-        <button className="avatar" aria-label="Profil">MP</button>
+        <Link className="avatar" aria-label="Logowanie i profil" href="/login">MP</Link>
       </header>
 
       <section className="hero">

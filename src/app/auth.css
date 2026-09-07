@@ -1,0 +1,4 @@
+.avatar{display:grid;place-items:center;text-decoration:none}
+.formMessage{padding:10px;border:1px solid var(--line);border-radius:8px;color:var(--lime);font-size:11px;line-height:1.45}
+.textButton{border:0;background:none;color:var(--lime);font-size:11px}
+.textLink{color:var(--muted);font-size:10px;text-align:center}
