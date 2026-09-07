@@ -22,7 +22,11 @@ export default function LoginPage() {
     setBusy(true); setMessage("");
     const result = mode === "login"
       ? await supabase.auth.signInWithPassword({ email, password })
-      : await supabase.auth.signUp({ email, password });
+      : await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: `${window.location.origin}/profile` },
+        });
     setBusy(false);
     if (result.error) { setMessage(result.error.message); return; }
     if (mode === "register" && !result.data.session) { setMessage("Sprawdź pocztę i potwierdź rejestrację."); return; }
