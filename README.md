@@ -29,3 +29,8 @@ mają prefiks `fh_`, a zdjęcia trafiają do osobnych bucketów `football-avatar
 ## Bezpieczeństwo
 
 Repozytorium powinno być prywatne. Taktyki są dostępne wyłącznie dla zawodników, kapitana, sztabu i administratora. Kibice widzą tylko opublikowany skład.
+
+
+## Deployment
+
+Vercel deploys the `main` branch automatically after the GitHub repository is connected.
