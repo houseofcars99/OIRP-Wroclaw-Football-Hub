@@ -17,7 +17,14 @@ npm install
 npm run dev
 ```
 
-Skopiuj `.env.example` do `.env.local` i uzupełnij dane osobnego projektu Supabase.
+Skopiuj `.env.example` do `.env.local` i uzupełnij dane projektu Supabase.
+
+## Wspólny projekt Supabase z QR Passport
+
+Football Hub może bezpiecznie korzystać z istniejącego projektu QR Passport. Uruchom
+`supabase/schema.sql` w SQL Editorze tego projektu. Wszystkie tabele i typy Football Hub
+mają prefiks `fh_`, a zdjęcia trafiają do osobnych bucketów `football-avatars` oraz
+`football-team-logos`. Migracja nie zmienia istniejących tabel QR Passport.
 
 ## Bezpieczeństwo
 
