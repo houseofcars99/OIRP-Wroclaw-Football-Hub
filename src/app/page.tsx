@@ -2,10 +2,10 @@ import Link from "next/link";
 
 const modules = [
   ["Skład meczowy", "Ustaw szóstkę, ławkę i formację", "/captain/lineup", "01"],
-  ["Taktyka", "Stałe fragmenty: atak i obrona", "#", "02"],
-  ["Centrum meczu", "Wynik, statystyki i relacja live", "#", "03"],
-  ["Komunikaty", "Zbiórki i wiadomości drużyny", "#", "04"],
-  ["Strefa kibica", "Typowanie i ranking", "#", "05"],
+  ["Taktyka", "Stałe fragmenty: atak i obrona", "/captain/tactics", "02"],
+  ["Centrum meczu", "Wynik, statystyki i relacja live", "/staff/live", "03"],
+  ["Mój profil", "Zdjęcie, numer i pozycja", "/profile", "04"],
+  ["Strefa kibica", "Typowanie i ranking", "/fan/predictions", "05"],
 ] as const;
 
 export default function Home() {
@@ -28,7 +28,7 @@ export default function Home() {
 
       <section className="modules" aria-label="Moduły aplikacji">
         {modules.map(([title, description, href, number]) => (
-          <Link className={`module ${href === "#" ? "disabled" : ""}`} href={href} key={title}>
+          <Link className="module" href={href} key={title}>
             <span className="moduleNumber">{number}</span>
             <div><h3>{title}</h3><p>{description}</p></div>
             <span className="arrow">→</span>
