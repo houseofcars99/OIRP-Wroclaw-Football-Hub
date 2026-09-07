@@ -1,0 +1,3 @@
+import Link from "next/link";
+import Image from "next/image";
+export default function Unauthorized(){return <main className="accessPage"><div className="accessCard"><Image src="/oirp-lawyers-logo.webp" width={150} height={150} alt="Reprezentacja Prawników Polska"/><p className="eyebrow">KONTO OCZEKUJE NA ROLĘ</p><h1>Brak uprawnień</h1><p>Administrator musi przypisać Ci rolę zawodnika, kapitana albo członka sztabu. Strefa kibica pozostaje dostępna publicznie.</p><Link className="primary wide" href="/fan/predictions">Przejdź do strefy kibica</Link><Link href="/">Wróć na start</Link></div></main>}

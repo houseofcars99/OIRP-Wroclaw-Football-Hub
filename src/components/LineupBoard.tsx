@@ -18,18 +18,19 @@ const players: Player[] = [
   { id: 9, shortName: "R. Dudek", number: 7, role: "PO", initials: "RD" },
   { id: 10, shortName: "S. Pawlak", number: 11, role: "NA", initials: "SP" },
   { id: 11, shortName: "M. Urban", number: 14, role: "PO", initials: "MU" },
+  { id: 12, shortName: "Ł. Bednarz", number: 17, role: "NA", initials: "ŁB" },
 ];
 
 const formations: Record<string, Omit<Spot, "playerId">[]> = {
-  "1–2–2": [{x:50,y:88},{x:26,y:66},{x:74,y:66},{x:30,y:34},{x:70,y:34},{x:50,y:14}],
-  "2–2–1": [{x:50,y:88},{x:30,y:65},{x:70,y:65},{x:30,y:40},{x:70,y:40},{x:50,y:14}],
-  "1–3–1": [{x:50,y:88},{x:50,y:68},{x:20,y:44},{x:50,y:44},{x:80,y:44},{x:50,y:14}],
-  "2–1–2": [{x:50,y:88},{x:30,y:66},{x:70,y:66},{x:50,y:45},{x:28,y:18},{x:72,y:18}],
+  "2–3–1": [{x:50,y:89},{x:30,y:70},{x:70,y:70},{x:18,y:42},{x:50,y:45},{x:82,y:42},{x:50,y:15}],
+  "3–2–1": [{x:50,y:89},{x:18,y:68},{x:50,y:72},{x:82,y:68},{x:32,y:40},{x:68,y:40},{x:50,y:14}],
+  "2–2–2": [{x:50,y:89},{x:30,y:70},{x:70,y:70},{x:30,y:43},{x:70,y:43},{x:30,y:16},{x:70,y:16}],
+  "1–3–2": [{x:50,y:89},{x:50,y:70},{x:18,y:44},{x:50,y:46},{x:82,y:44},{x:30,y:16},{x:70,y:16}],
 };
 
-export default function LineupBoard() {
-  const [formation, setFormation] = useState("1–2–2");
-  const [spots, setSpots] = useState<Spot[]>(() => formations["1–2–2"].map((p, i) => ({...p, playerId: players[i].id})));
+export default function LineupBoard({ readOnly = false }: { readOnly?: boolean }) {
+  const [formation, setFormation] = useState("2–3–1");
+  const [spots, setSpots] = useState<Spot[]>(() => formations["2–3–1"].map((p, i) => ({...p, playerId: players[i].id})));
   const [published, setPublished] = useState(false);
   const [selectedSpot, setSelectedSpot] = useState<number | null>(null);
   const starters = useMemo(() => new Set(spots.map(s => s.playerId)), [spots]);
@@ -42,6 +43,7 @@ export default function LineupBoard() {
   }
 
   function movePlayer(event: React.PointerEvent<HTMLButtonElement>, index: number) {
+    if (readOnly) return;
     const pitch = event.currentTarget.parentElement?.getBoundingClientRect();
     if (!pitch) return;
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -70,15 +72,15 @@ export default function LineupBoard() {
     <main className="lineupShell">
       <header className="lineupHeader">
         <Link href="/" className="back">←</Link>
-        <div><p className="eyebrow">KAPITAN · MECZ 01</p><h1>Skład meczowy</h1></div>
-        <span className={published ? "status live" : "status"}>{published ? "OPUBLIKOWANY" : "ROBOCZY"}</span>
+        <div><p className="eyebrow">{readOnly?"STREFA KIBICA · MECZ 01":"KAPITAN · MECZ 01"}</p><h1>Skład meczowy</h1></div>
+        <span className={readOnly||published ? "status live" : "status"}>{readOnly||published ? "OPUBLIKOWANY" : "ROBOCZY"}</span>
       </header>
 
       <div className="formationBar">
         <label>FORMACJA<select value={formation} onChange={e => changeFormation(e.target.value)}>
           {Object.keys(formations).map(name => <option key={name}>{name}</option>)}
         </select></label>
-        <span>6 / 6 NA BOISKU</span>
+        <span>7 / 7 NA BOISKU</span>
       </div>
 
       <section className="pitch" aria-label="Interaktywne ustawienie zawodników">
@@ -86,7 +88,7 @@ export default function LineupBoard() {
         {spots.map((spot, index) => {
           const player = players.find(p => p.id === spot.playerId)!;
           return (
-            <button key={player.id} className={`playerToken ${selectedSpot===index?"selected":""}`} style={{left:`${spot.x}%`, top:`${spot.y}%`}} onClick={()=>setSelectedSpot(index)} onPointerDown={e => movePlayer(e, index)}>
+            <button key={player.id} className={`playerToken ${selectedSpot===index?"selected":""}`} style={{left:`${spot.x}%`, top:`${spot.y}%`}} onClick={()=>{if(!readOnly)setSelectedSpot(index)}} onPointerDown={e => movePlayer(e, index)}>
               <span className="photo">{player.initials}<i>{player.number}</i></span>
               <strong>{player.shortName}</strong><small>{player.role}</small>
             </button>
@@ -96,11 +98,11 @@ export default function LineupBoard() {
 
       <section className="bench">
         <div className="sectionTitle"><div><p className="eyebrow">ŁAWKA REZERWOWYCH</p><h2>Zmiany</h2></div><span>{bench.length} / 5</span></div>
-        <p className="lineupHint">{selectedSpot===null?"Dotknij zawodnika na boisku, a potem rezerwowego, aby wykonać zmianę.":"Wybierz zawodnika z ławki do zamiany."}</p>
-        <div className="benchList">{bench.map(player => <button type="button" className="benchPlayer" onClick={()=>substitute(player.id)} key={player.id}><span className="photo small">{player.initials}<i>{player.number}</i></span><strong>{player.shortName}</strong><small>{player.role}</small></button>)}</div>
+        {!readOnly&&<p className="lineupHint">{selectedSpot===null?"Dotknij zawodnika na boisku, a potem rezerwowego, aby wykonać zmianę.":"Wybierz zawodnika z ławki do zamiany."}</p>}
+        <div className="benchList">{bench.map(player => <button type="button" disabled={readOnly} className="benchPlayer" onClick={()=>substitute(player.id)} key={player.id}><span className="photo small">{player.initials}<i>{player.number}</i></span><strong>{player.shortName}</strong><small>{player.role}</small></button>)}</div>
       </section>
 
-      <div className="actions"><button className="secondary" onClick={() => setPublished(false)}>Zapisz roboczo</button><button className="primary" onClick={() => setPublished(true)}>Opublikuj skład</button></div>
+      {!readOnly&&<div className="actions"><button className="secondary" onClick={() => setPublished(false)}>Zapisz roboczo</button><button className="primary" onClick={() => setPublished(true)}>Opublikuj skład</button></div>}
     </main>
   );
 }

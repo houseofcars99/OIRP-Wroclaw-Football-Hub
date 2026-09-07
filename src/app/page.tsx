@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import BottomNav from "@/components/BottomNav";
 
 const modules = [
@@ -14,21 +15,21 @@ export default function Home() {
   return (
     <main className="shell">
       <header className="topbar">
-        <div className="brandMark">O</div>
+        <Image className="brandLogo" src="/oirp-lawyers-logo.webp" width={58} height={58} alt="Reprezentacja Prawników Polska" priority />
         <div><p className="eyebrow">OIRP WROCŁAW</p><h1>Football Hub</h1></div>
         <Link className="avatar" aria-label="Logowanie i profil" href="/login">MP</Link>
       </header>
 
-      <section className="hero">
+      <section className="hero fifaHero">
         <p className="eyebrow">MISTRZOSTWA ŚWIATA PRAWNIKÓW</p>
-        <h2>Jedna drużyna.<br/><span>Jeden plan.</span></h2>
+        <h2>Gotowi<br/><span>do gry.</span></h2>
         <div className="nextMatch">
           <div><small>NAJBLIŻSZY MECZ</small><strong>OIRP Wrocław <b>—</b> Lawyers Madrid</strong></div>
           <time>09:30<small>12 WRZ</small></time>
         </div>
       </section>
 
-      <section className="modules" aria-label="Moduły aplikacji">
+      <section className="modules fifaTiles" aria-label="Moduły aplikacji">
         {modules.map(([title, description, href, number]) => (
           <Link className="module" href={href} key={title}>
             <span className="moduleNumber">{number}</span>
