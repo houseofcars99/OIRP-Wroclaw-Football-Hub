@@ -22,7 +22,16 @@ export default function ProfilePage() {
       if (!data.user) { router.replace("/login"); return; }
       setUserId(data.user.id);
       const { data: profile } = await supabase.from("fh_profiles").select("*").eq("id", data.user.id).maybeSingle();
-      if (profile) setInitialProfile(profile);
+      if (profile) {
+        setInitialProfile(profile);
+        if (profile.avatar_path) {
+          const { data: signedImage, error: imageError } = await supabase.storage
+            .from("football-avatars")
+            .createSignedUrl(profile.avatar_path, 60 * 60);
+          if (signedImage?.signedUrl) setPhoto(signedImage.signedUrl);
+          if (imageError) setMessage(`Nie udało się wczytać zdjęcia: ${imageError.message}`);
+        }
+      }
       setLoading(false);
     });
   }, [router]);
@@ -34,9 +43,11 @@ export default function ProfilePage() {
     const data = new FormData(event.currentTarget);
     let avatarPath = typeof initialProfile?.avatar_path === "string" ? initialProfile.avatar_path : undefined;
     if (photoFile) {
+      if (!photoFile.type.startsWith("image/")) { setMessage("Wybierz plik graficzny JPG, PNG lub HEIC."); return; }
+      if (photoFile.size > 8 * 1024 * 1024) { setMessage("Zdjęcie może mieć maksymalnie 8 MB."); return; }
       avatarPath = `${userId}/avatar-${Date.now()}.${photoFile.name.split(".").pop() ?? "jpg"}`;
       const upload = await supabase.storage.from("football-avatars").upload(avatarPath, photoFile, { upsert: true });
-      if (upload.error) { setMessage(upload.error.message); return; }
+      if (upload.error) { setMessage(`Nie udało się zapisać zdjęcia: ${upload.error.message}`); return; }
     }
     const result = await supabase.from("fh_profiles").upsert({
       id: userId, first_name: data.get("firstName"), last_name: data.get("lastName"),
@@ -44,6 +55,11 @@ export default function ProfilePage() {
       preferred_position: data.get("position"), avatar_path: avatarPath, onboarding_complete: true,
     });
     if (result.error) { setMessage(result.error.message); return; }
+    if (avatarPath) {
+      const { data: signedImage } = await supabase.storage.from("football-avatars").createSignedUrl(avatarPath, 60 * 60);
+      if (signedImage?.signedUrl) setPhoto(signedImage.signedUrl);
+      setInitialProfile(current => ({ ...(current ?? {}), avatar_path: avatarPath }));
+    }
     setSaved(true); setMessage("Profil został zapisany.");
   }
 
