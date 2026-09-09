@@ -5,6 +5,7 @@ import "./dashboard.css";
 import "./interaction.css";
 import "./brand.css";
 import "./public.css";
+import "./admin-fan.css";
 
 export const metadata: Metadata = {
   title: "OIRP Wrocław Football Hub",

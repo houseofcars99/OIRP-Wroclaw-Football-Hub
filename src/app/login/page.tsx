@@ -30,7 +30,8 @@ export default function LoginPage() {
     setBusy(false);
     if (result.error) { setMessage(result.error.message); return; }
     if (mode === "register" && !result.data.session) { setMessage("Sprawdź pocztę i potwierdź rejestrację."); return; }
-    router.push("/profile");
+    const requestedPath = new URLSearchParams(window.location.search).get("next");
+    router.push(requestedPath?.startsWith("/") ? requestedPath : "/profile");
   }
 
   return <main className="lineupShell"><PageHeader eyebrow="OIRP WROCŁAW" title={mode === "login" ? "Logowanie" : "Załóż konto"} />
