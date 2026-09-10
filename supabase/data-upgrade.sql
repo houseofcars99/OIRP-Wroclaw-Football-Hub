@@ -38,3 +38,17 @@ create policy "fh_logo_admin_upload" on storage.objects for insert to authentica
 -- Exactly one team can be marked as our team. This keeps lineup selection unambiguous.
 create unique index if not exists fh_teams_one_our_team_idx
   on public.fh_teams (is_our_team) where is_our_team = true;
+
+-- Public match centre: supporters can read teams, fixtures and staff commentary.
+drop policy if exists "fh_teams_public_read" on public.fh_teams;
+create policy "fh_teams_public_read" on public.fh_teams for select to anon, authenticated using (true);
+drop policy if exists "fh_matches_public_read" on public.fh_matches;
+create policy "fh_matches_public_read" on public.fh_matches for select to anon, authenticated using (true);
+drop policy if exists "fh_events_public_read" on public.fh_match_events;
+create policy "fh_events_public_read" on public.fh_match_events for select to anon, authenticated using (true);
+
+-- Players may view tactics, but only captain/admin policies allow changes.
+drop policy if exists "fh_tactics_team_read" on public.fh_tactics;
+create policy "fh_tactics_team_read" on public.fh_tactics for select to authenticated using (
+  public.fh_has_role('player') or public.fh_has_role('captain') or public.fh_has_role('staff') or public.fh_has_role('admin')
+);

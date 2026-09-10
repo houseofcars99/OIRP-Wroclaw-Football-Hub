@@ -1,0 +1,14 @@
+.fanLive { margin-top: 28px; background: #fff; color: #25184f; box-shadow: 0 10px 28px #25184f16; }
+.fanLive > header { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; border-bottom: 3px solid #bd1f2d; }
+.fanLive h2 { font-size: 19px; }
+.fanLive h2 b { color: #bd1f2d; padding: 0 7px; }
+.fanLive > header > span { color: #777; font-size: 10px; font-weight: 900; }
+.fanLive .livePulse { color: #bd1f2d; animation: live-pulse 1.4s infinite; }
+.fanTimeline { padding: 4px 24px 18px; }
+.fanTimeline article { display: grid; grid-template-columns: 52px 1fr; gap: 12px; padding: 16px 0; border-bottom: 1px solid #e1e2e7; }
+.fanTimeline article > strong { color: #bd1f2d; font-size: 20px; }
+.fanTimeline article > span { display: grid; gap: 5px; font-size: 14px; }
+.fanTimeline small { color: #777; font-size: 8px; letter-spacing: .1em; text-transform: uppercase; }
+.fanLive .empty { padding: 26px; color: #777; text-align: center; }
+@keyframes live-pulse { 50% { opacity: .4; } }
+@media (max-width: 650px) { .fanLive > header { align-items: flex-start; gap: 12px; } .fanLive h2 { font-size: 15px; } }
