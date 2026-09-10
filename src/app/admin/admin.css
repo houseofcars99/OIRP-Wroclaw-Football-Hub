@@ -1,0 +1,17 @@
+.adminMatchGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.adminMatchGrid .formCard { align-content: start; }
+.adminMatchGrid h2 { font-size: 20px; text-transform: uppercase; }
+.checkLabel { display: flex !important; align-items: center; justify-content: flex-start; }
+.checkLabel input { width: 18px !important; height: 18px; }
+.adminForm button:disabled { opacity: .45; cursor: not-allowed; }
+
+@media (max-width: 650px) {
+  .adminMatchGrid { grid-template-columns: 1fr; }
+  .adminTabs { padding-bottom: 4px; }
+  .fieldGrid { grid-template-columns: 1fr; }
+}

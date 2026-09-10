@@ -1,13 +1,4 @@
-import Link from "next/link";
-import AppShell from "@/components/AppShell";
-import PageHeader from "@/components/PageHeader";
-
-const matches=[
-  {date:"12 WRZ · 09:30",home:"OIRP Wrocław",away:"Lawyers Madrid",place:"Boisko Centralne",status:"NASTĘPNY"},
-  {date:"12 WRZ · 15:10",home:"Lawyers Berlin",away:"OIRP Wrocław",place:"Boisko 2",status:"ZAPLANOWANY"},
-  {date:"13 WRZ · 11:20",home:"OIRP Wrocław",away:"Lex Roma",place:"Boisko Centralne",status:"ZAPLANOWANY"},
-];
-export default function MatchesPage(){return <AppShell><PageHeader eyebrow="TURNIEJ" title="Terminarz" />
-  <div className="filterRow"><button className="active">Nasze mecze</button><button>Wszystkie</button><span>Faza grupowa</span></div>
-  <section className="matchList">{matches.map((m,i)=><article key={m.date}><div className="matchMeta"><span>{m.status}</span><time>{m.date}</time></div><div className="matchTeams"><strong>{m.home}</strong><b>—</b><strong>{m.away}</strong></div><p>{m.place}</p><div className="matchLinks"><Link href="/captain/lineup">Skład</Link><Link href="/fan/predictions">Typuj wynik</Link>{i===0&&<Link href="/staff/live">Relacja live</Link>}</div></article>)}</section>
- </AppShell>}
+"use client";
+import Link from "next/link";import {useEffect,useState} from "react";import AppShell from "@/components/AppShell";import PageHeader from "@/components/PageHeader";import {getSupabaseBrowserClient} from "@/lib/supabaseBrowser";import {formatDateTime} from "@/lib/format";
+type Match={id:string;kickoff_at:string;venue:string|null;status:string;home_score:number;away_score:number;home_team:{name:string}|null;away_team:{name:string}|null};
+export default function MatchesPage(){const [matches,setMatches]=useState<Match[]>([]),[error,setError]=useState("");useEffect(()=>{const sb=getSupabaseBrowserClient();if(!sb)return;void(async()=>{const {data,error:e}=await sb.from("fh_matches").select("id,kickoff_at,venue,status,home_score,away_score,home_team:fh_teams!fh_matches_home_team_id_fkey(name),away_team:fh_teams!fh_matches_away_team_id_fkey(name)").order("kickoff_at");if(e)setError(e.message);else setMatches((data??[]) as unknown as Match[])})()},[]);return <AppShell><PageHeader eyebrow="TURNIEJ" title="Terminarz"/>{error&&<p className="formMessage">{error}</p>}<section className="matchList">{matches.length===0?<p className="empty">Administrator nie dodał jeszcze meczów.</p>:matches.map(m=><article key={m.id}><div className="matchMeta"><span>{m.status.toUpperCase()}</span><time>{formatDateTime(m.kickoff_at)}</time></div><div className="matchTeams"><strong>{m.home_team?.name}</strong><b>{m.status==="finished"||m.status==="live"?`${m.home_score}:${m.away_score}`:"—"}</b><strong>{m.away_team?.name}</strong></div><p>{m.venue??"Miejsce do ustalenia"}</p><div className="matchLinks"><Link href="/fan/lineup">Skład</Link><Link href="/fan/predictions">Typuj wynik</Link>{m.status==="live"&&<Link href="/staff/live">Relacja live</Link>}</div></article>)}</section></AppShell>}

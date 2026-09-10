@@ -1,108 +1,17 @@
 "use client";
-
 import Link from "next/link";
-import { useMemo, useState } from "react";
-
-type Player = { id: number; shortName: string; number: number; role: string; initials: string };
-type Spot = { playerId: number; x: number; y: number };
-
-const players: Player[] = [
-  { id: 1, shortName: "M. Pitek", number: 1, role: "BR", initials: "MP" },
-  { id: 2, shortName: "K. Nowak", number: 4, role: "OB", initials: "KN" },
-  { id: 3, shortName: "P. Wójcik", number: 5, role: "OB", initials: "PW" },
-  { id: 4, shortName: "A. Zieliński", number: 8, role: "PO", initials: "AZ" },
-  { id: 5, shortName: "T. Mazur", number: 10, role: "PO", initials: "TM" },
-  { id: 6, shortName: "J. Kaczmarek", number: 9, role: "NA", initials: "JK" },
-  { id: 7, shortName: "D. Lis", number: 12, role: "BR", initials: "DL" },
-  { id: 8, shortName: "B. Król", number: 6, role: "OB", initials: "BK" },
-  { id: 9, shortName: "R. Dudek", number: 7, role: "PO", initials: "RD" },
-  { id: 10, shortName: "S. Pawlak", number: 11, role: "NA", initials: "SP" },
-  { id: 11, shortName: "M. Urban", number: 14, role: "PO", initials: "MU" },
-  { id: 12, shortName: "Ł. Bednarz", number: 17, role: "NA", initials: "ŁB" },
-];
-
-const formations: Record<string, Omit<Spot, "playerId">[]> = {
-  "2–3–1": [{x:50,y:89},{x:30,y:70},{x:70,y:70},{x:18,y:42},{x:50,y:45},{x:82,y:42},{x:50,y:15}],
-  "3–2–1": [{x:50,y:89},{x:18,y:68},{x:50,y:72},{x:82,y:68},{x:32,y:40},{x:68,y:40},{x:50,y:14}],
-  "2–2–2": [{x:50,y:89},{x:30,y:70},{x:70,y:70},{x:30,y:43},{x:70,y:43},{x:30,y:16},{x:70,y:16}],
-  "1–3–2": [{x:50,y:89},{x:50,y:70},{x:18,y:44},{x:50,y:46},{x:82,y:44},{x:30,y:16},{x:70,y:16}],
-};
-
-export default function LineupBoard({ readOnly = false }: { readOnly?: boolean }) {
-  const [formation, setFormation] = useState("2–3–1");
-  const [spots, setSpots] = useState<Spot[]>(() => formations["2–3–1"].map((p, i) => ({...p, playerId: players[i].id})));
-  const [published, setPublished] = useState(false);
-  const [selectedSpot, setSelectedSpot] = useState<number | null>(null);
-  const starters = useMemo(() => new Set(spots.map(s => s.playerId)), [spots]);
-  const bench = players.filter(p => !starters.has(p.id)).slice(0, 5);
-
-  function changeFormation(value: string) {
-    setFormation(value);
-    setSpots(current => formations[value].map((p, i) => ({...p, playerId: current[i]?.playerId ?? players[i].id})));
-    setPublished(false);
-  }
-
-  function movePlayer(event: React.PointerEvent<HTMLButtonElement>, index: number) {
-    if (readOnly) return;
-    const pitch = event.currentTarget.parentElement?.getBoundingClientRect();
-    if (!pitch) return;
-    event.currentTarget.setPointerCapture(event.pointerId);
-    const move = (pointer: PointerEvent) => {
-      const x = Math.min(92, Math.max(8, ((pointer.clientX - pitch.left) / pitch.width) * 100));
-      const y = Math.min(94, Math.max(6, ((pointer.clientY - pitch.top) / pitch.height) * 100));
-      setSpots(current => current.map((spot, i) => i === index ? {...spot, x, y} : spot));
-      setPublished(false);
-    };
-    const stop = () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", stop);
-    };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", stop);
-  }
-
-  function substitute(playerId: number) {
-    if (selectedSpot === null) return;
-    setSpots(current => current.map((spot, index) => index === selectedSpot ? {...spot, playerId} : spot));
-    setSelectedSpot(null);
-    setPublished(false);
-  }
-
-  return (
-    <main className="lineupShell">
-      <header className="lineupHeader">
-        <Link href="/" className="back">←</Link>
-        <div><p className="eyebrow">{readOnly?"STREFA KIBICA · MECZ 01":"KAPITAN · MECZ 01"}</p><h1>Skład meczowy</h1></div>
-        <span className={readOnly||published ? "status live" : "status"}>{readOnly||published ? "OPUBLIKOWANY" : "ROBOCZY"}</span>
-      </header>
-
-      <div className="formationBar">
-        <label>FORMACJA<select value={formation} onChange={e => changeFormation(e.target.value)}>
-          {Object.keys(formations).map(name => <option key={name}>{name}</option>)}
-        </select></label>
-        <span>7 / 7 NA BOISKU</span>
-      </div>
-
-      <section className="pitch" aria-label="Interaktywne ustawienie zawodników">
-        <div className="halfway"/><div className="centerCircle"/><div className="box top"/><div className="box bottom"/>
-        {spots.map((spot, index) => {
-          const player = players.find(p => p.id === spot.playerId)!;
-          return (
-            <button key={player.id} className={`playerToken ${selectedSpot===index?"selected":""}`} style={{left:`${spot.x}%`, top:`${spot.y}%`}} onClick={()=>{if(!readOnly)setSelectedSpot(index)}} onPointerDown={e => movePlayer(e, index)}>
-              <span className="photo">{player.initials}<i>{player.number}</i></span>
-              <strong>{player.shortName}</strong><small>{player.role}</small>
-            </button>
-          );
-        })}
-      </section>
-
-      <section className="bench">
-        <div className="sectionTitle"><div><p className="eyebrow">ŁAWKA REZERWOWYCH</p><h2>Zmiany</h2></div><span>{bench.length} / 5</span></div>
-        {!readOnly&&<p className="lineupHint">{selectedSpot===null?"Dotknij zawodnika na boisku, a potem rezerwowego, aby wykonać zmianę.":"Wybierz zawodnika z ławki do zamiany."}</p>}
-        <div className="benchList">{bench.map(player => <button type="button" disabled={readOnly} className="benchPlayer" onClick={()=>substitute(player.id)} key={player.id}><span className="photo small">{player.initials}<i>{player.number}</i></span><strong>{player.shortName}</strong><small>{player.role}</small></button>)}</div>
-      </section>
-
-      {!readOnly&&<div className="actions"><button className="secondary" onClick={() => setPublished(false)}>Zapisz roboczo</button><button className="primary" onClick={() => setPublished(true)}>Opublikuj skład</button></div>}
-    </main>
-  );
+import {useEffect,useMemo,useState} from "react";
+import {getSupabaseBrowserClient} from "@/lib/supabaseBrowser";
+type Player={id:string;shortName:string;number:number;role:string;initials:string};type Spot={playerId:string;x:number;y:number};
+const demo:Player[]=[["1","M. Pitek",1,"BR","MP"],["2","K. Nowak",4,"OB","KN"],["3","P. Wójcik",5,"OB","PW"],["4","A. Zieliński",8,"PO","AZ"],["5","T. Mazur",10,"PO","TM"],["6","J. Kaczmarek",9,"NA","JK"],["7","D. Lis",12,"BR","DL"],["8","B. Król",6,"OB","BK"],["9","R. Dudek",7,"PO","RD"],["10","S. Pawlak",11,"NA","SP"],["11","M. Urban",14,"PO","MU"],["12","Ł. Bednarz",17,"NA","ŁB"]].map(x=>({id:String(x[0]),shortName:String(x[1]),number:Number(x[2]),role:String(x[3]),initials:String(x[4])}));
+const formations:Record<string,Omit<Spot,"playerId">[]>={"2–3–1":[{x:50,y:89},{x:30,y:70},{x:70,y:70},{x:18,y:42},{x:50,y:45},{x:82,y:42},{x:50,y:15}],"3–2–1":[{x:50,y:89},{x:18,y:68},{x:50,y:72},{x:82,y:68},{x:32,y:40},{x:68,y:40},{x:50,y:14}],"2–2–2":[{x:50,y:89},{x:30,y:70},{x:70,y:70},{x:30,y:43},{x:70,y:43},{x:30,y:16},{x:70,y:16}],"1–3–2":[{x:50,y:89},{x:50,y:70},{x:18,y:44},{x:50,y:46},{x:82,y:44},{x:30,y:16},{x:70,y:16}]};
+export default function LineupBoard({readOnly=false}:{readOnly?:boolean}){
+ const [players,setPlayers]=useState(demo),[formation,setFormation]=useState("2–3–1"),[spots,setSpots]=useState<Spot[]>(()=>formations["2–3–1"].map((p,i)=>({...p,playerId:demo[i].id}))),[published,setPublished]=useState(false),[selectedSpot,setSelectedSpot]=useState<number|null>(null),[message,setMessage]=useState("");
+ const [context,setContext]=useState<{matchId:string;teamId:string}|null>(null);const starters=useMemo(()=>new Set(spots.map(s=>s.playerId)),[spots]);const bench=players.filter(p=>!starters.has(p.id)).slice(0,5);
+ useEffect(()=>{const sb=getSupabaseBrowserClient();if(!sb)return;void(async()=>{const {data:p}=await sb.from("fh_profiles").select("id,display_name,shirt_number,preferred_position,first_name,last_name");if(p&&p.length>=7){const real=p.map(x=>({id:x.id,shortName:x.display_name,number:x.shirt_number??0,role:x.preferred_position??"PO",initials:`${x.first_name?.[0]??""}${x.last_name?.[0]??""}`.toUpperCase()}));setPlayers(real);setSpots(formations["2–3–1"].map((pos,i)=>({...pos,playerId:real[i].id})))}if(readOnly)return;const {data:team}=await sb.from("fh_teams").select("id").eq("is_our_team",true).limit(1).maybeSingle();if(!team){setMessage("Najpierw dodaj w bazie drużynę oznaczoną jako nasza.");return}const {data:match}=await sb.from("fh_matches").select("id").or(`home_team_id.eq.${team.id},away_team_id.eq.${team.id}`).order("kickoff_at").limit(1).maybeSingle();if(!match){setMessage("Najpierw dodaj mecz w panelu administratora.");return}setContext({matchId:match.id,teamId:team.id});const {data:lineup}=await sb.from("fh_lineups").select("id,formation,status").eq("match_id",match.id).maybeSingle();if(lineup){setFormation(lineup.formation);setPublished(lineup.status==="published");const {data:slots}=await sb.from("fh_lineup_slots").select("player_id,slot_type,x,y,sort_order").eq("lineup_id",lineup.id).order("sort_order");const field=(slots??[]).filter(x=>x.slot_type==="field");if(field.length===7)setSpots(field.map(x=>({playerId:x.player_id,x:Number(x.x),y:Number(x.y)})))}})()},[readOnly]);
+ function changeFormation(v:string){setFormation(v);setSpots(cur=>formations[v].map((p,i)=>({...p,playerId:cur[i]?.playerId??players[i].id})));setPublished(false)}
+ function movePlayer(e:React.PointerEvent<HTMLButtonElement>,index:number){if(readOnly)return;const pitch=e.currentTarget.parentElement?.getBoundingClientRect();if(!pitch)return;e.currentTarget.setPointerCapture(e.pointerId);const move=(p:PointerEvent)=>{const x=Math.min(92,Math.max(8,(p.clientX-pitch.left)/pitch.width*100)),y=Math.min(94,Math.max(6,(p.clientY-pitch.top)/pitch.height*100));setSpots(v=>v.map((s,i)=>i===index?{...s,x,y}:s));setPublished(false)};const stop=()=>{window.removeEventListener("pointermove",move);window.removeEventListener("pointerup",stop)};window.addEventListener("pointermove",move);window.addEventListener("pointerup",stop)}
+ function substitute(id:string){if(selectedSpot===null)return;setSpots(v=>v.map((s,i)=>i===selectedSpot?{...s,playerId:id}:s));setSelectedSpot(null);setPublished(false)}
+ async function save(status:"draft"|"published"){const sb=getSupabaseBrowserClient();if(!sb||!context){setMessage("Brak meczu lub drużyny do zapisania.");return}const {data:{user}}=await sb.auth.getUser();const {data:lineup,error}=await sb.from("fh_lineups").upsert({match_id:context.matchId,team_id:context.teamId,formation,status,published_at:status==="published"?new Date().toISOString():null,updated_by:user?.id,updated_at:new Date().toISOString()},{onConflict:"match_id"}).select("id").single();if(error||!lineup){setMessage(error?.message??"Nie udało się zapisać składu.");return}await sb.from("fh_lineup_slots").delete().eq("lineup_id",lineup.id);const rows=[...spots.map((s,i)=>({lineup_id:lineup.id,player_id:s.playerId,slot_type:"field",x:s.x,y:s.y,sort_order:i})),...bench.map((p,i)=>({lineup_id:lineup.id,player_id:p.id,slot_type:"bench",x:null,y:null,sort_order:i}))];const inserted=await sb.from("fh_lineup_slots").insert(rows);if(inserted.error){setMessage(inserted.error.message);return}setPublished(status==="published");setMessage(status==="published"?"Skład opublikowany.":"Wersja robocza zapisana.")}
+ return <main className="lineupShell"><header className="lineupHeader"><Link href="/" className="back">←</Link><div><p className="eyebrow">{readOnly?"STREFA KIBICA · MECZ":"KAPITAN · MECZ"}</p><h1>Skład meczowy</h1></div><span className={readOnly||published?"status live":"status"}>{readOnly||published?"OPUBLIKOWANY":"ROBOCZY"}</span></header>{message&&<p className="formMessage lineupMessage">{message}</p>}<div className="formationBar"><label>FORMACJA<select disabled={readOnly} value={formation} onChange={e=>changeFormation(e.target.value)}>{Object.keys(formations).map(x=><option key={x}>{x}</option>)}</select></label><span>7 / 7 NA BOISKU</span></div><section className="pitch" aria-label="Ustawienie zawodników"><div className="halfway"/><div className="centerCircle"/><div className="box top"/><div className="box bottom"/>{spots.map((s,i)=>{const p=players.find(x=>x.id===s.playerId);if(!p)return null;return <button key={p.id} className={`playerToken ${selectedSpot===i?"selected":""}`} style={{left:`${s.x}%`,top:`${s.y}%`}} onClick={()=>{if(!readOnly)setSelectedSpot(i)}} onPointerDown={e=>movePlayer(e,i)}><span className="photo">{p.initials}<i>{p.number}</i></span><strong>{p.shortName}</strong><small>{p.role}</small></button>})}</section><section className="bench"><div className="sectionTitle"><div><p className="eyebrow">ŁAWKA REZERWOWYCH</p><h2>Zmiany</h2></div><span>{bench.length} / 5</span></div>{!readOnly&&<p className="lineupHint">{selectedSpot===null?"Wybierz zawodnika na boisku, a następnie rezerwowego.":"Wybierz zawodnika z ławki."}</p>}<div className="benchList">{bench.map(p=><button disabled={readOnly} className="benchPlayer" onClick={()=>substitute(p.id)} key={p.id}><span className="photo small">{p.initials}<i>{p.number}</i></span><strong>{p.shortName}</strong><small>{p.role}</small></button>)}</div></section>{!readOnly&&<div className="actions"><button className="secondary" onClick={()=>void save("draft")}>Zapisz roboczo</button><button className="primary" onClick={()=>void save("published")}>Opublikuj skład</button></div>}</main>
 }
