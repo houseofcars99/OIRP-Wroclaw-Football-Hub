@@ -52,3 +52,18 @@ drop policy if exists "fh_tactics_team_read" on public.fh_tactics;
 create policy "fh_tactics_team_read" on public.fh_tactics for select to authenticated using (
   public.fh_has_role('player') or public.fh_has_role('captain') or public.fh_has_role('staff') or public.fh_has_role('admin')
 );
+
+-- Limited public player data used only for a captain-published lineup.
+drop function if exists public.fh_get_public_lineup_players();
+create or replace function public.fh_get_public_lineup_players(target_lineup_id uuid)
+returns table (id uuid, display_name text, shirt_number integer, preferred_position text, first_name text, last_name text)
+language sql stable security definer set search_path = public
+as $$
+  select distinct p.id, p.display_name, p.shirt_number, p.preferred_position, p.first_name, p.last_name
+  from public.fh_profiles p
+  join public.fh_lineup_slots s on s.player_id = p.id
+  join public.fh_lineups l on l.id = s.lineup_id
+  where l.status = 'published' and l.id = target_lineup_id;
+$$;
+revoke all on function public.fh_get_public_lineup_players(uuid) from public;
+grant execute on function public.fh_get_public_lineup_players(uuid) to anon, authenticated;

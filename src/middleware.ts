@@ -1,18 +1,40 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { accessConfig, accessToken, type AccessArea } from "@/lib/accessGate";
 
 const roleRules: Array<[string, string[]]> = [
-  ["/admin", ["admin"]],
+  ["/admin", ["captain", "admin"]],
   ["/staff", ["staff", "admin"]],
   ["/captain/lineup", ["captain", "admin"]],
-  ["/captain/tactics", ["player", "captain", "staff", "admin"]],
+  ["/player/tactics", ["player", "captain", "staff", "admin"]],
   ["/player", ["player", "captain", "staff", "admin"]],
   ["/messages", ["player", "captain", "staff", "admin"]],
   ["/stats", ["player", "captain", "staff", "admin"]],
 ];
 
+const passwordRules: Array<[string, AccessArea]> = [
+  ["/admin", "captain"],
+  ["/captain/lineup", "captain"],
+  ["/staff", "staff"],
+  ["/player", "player"],
+  ["/messages", "player"],
+  ["/matches", "player"],
+  ["/stats", "player"],
+];
+
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
+  const passwordRule = passwordRules.find(([path]) => request.nextUrl.pathname.startsWith(path));
+  if (passwordRule) {
+    const area = passwordRule[1];
+    const supplied = request.cookies.get(accessConfig[area].cookie)?.value;
+    if (supplied !== await accessToken(area)) {
+      const accessUrl = new URL("/access", request.url);
+      accessUrl.searchParams.set("area", area);
+      accessUrl.searchParams.set("next", request.nextUrl.pathname);
+      return NextResponse.redirect(accessUrl);
+    }
+  }
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) return response;

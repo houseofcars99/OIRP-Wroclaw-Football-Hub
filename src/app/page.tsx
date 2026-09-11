@@ -4,11 +4,10 @@ import BottomNav from "@/components/BottomNav";
 
 const modules = [
   ["Centrum zawodnika", "Wiadomości, mecze i odprawa", "/player", "01"],
-  ["Skład meczowy", "Ustaw szóstkę, ławkę i formację", "/captain/lineup", "02"],
-  ["Taktyka", "Stałe fragmenty: atak i obrona", "/captain/tactics", "03"],
-  ["Centrum meczu", "Wynik, statystyki i relacja live", "/staff/live", "04"],
-  ["Strefa kibica", "Typowanie i ranking", "/fan/predictions", "05"],
-  ["Panel admina", "Drużyny, mecze, role i komunikaty", "/admin", "06"],
+  ["Skład meczowy", "Opublikowany skład 7 zawodników", "/fan/lineup", "02"],
+  ["Centrum meczu", "Wynik, statystyki i relacja live", "/staff/live", "03"],
+  ["Strefa kibica", "Typowanie, relacja i ranking", "/fan/predictions", "04"],
+  ["Panel kapitana", "Zbiórki, skład, mecze i komunikaty", "/admin", "05"],
 ] as const;
 
 export default function Home() {
