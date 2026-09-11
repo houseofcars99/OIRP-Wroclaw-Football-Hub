@@ -9,9 +9,16 @@
 .checkLabel { display: flex !important; align-items: center; justify-content: flex-start; }
 .checkLabel input { width: 18px !important; height: 18px; }
 .adminForm button:disabled { opacity: .45; cursor: not-allowed; }
+.playerEdit { width: 100%; padding: 18px; border: 1px solid var(--line); background: white; }
+.playerActions { display: flex; gap: 8px; align-items: center; margin-left: auto; }
+.playerActions button { min-height: 40px; padding: 0 16px; border: 0; font-weight: 800; cursor: pointer; }
+.playerActions .danger { color: white; background: #bd1e2c; }
+.playerEdit .playerActions { justify-content: flex-end; margin-top: 14px; }
 
 @media (max-width: 650px) {
   .adminMatchGrid { grid-template-columns: 1fr; }
   .adminTabs { padding-bottom: 4px; }
   .fieldGrid { grid-template-columns: 1fr; }
+  .userRoles article { align-items: flex-start; flex-wrap: wrap; }
+  .userRoles article .playerActions { width: 100%; }
 }

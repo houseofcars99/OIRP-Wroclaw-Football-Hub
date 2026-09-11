@@ -22,9 +22,9 @@ alter table public.fh_gathering_responses enable row level security;
 drop policy if exists "fh_gatherings_team_read" on public.fh_gatherings;
 create policy "fh_gatherings_team_read" on public.fh_gatherings for select to authenticated using (true);
 drop policy if exists "fh_gatherings_admin_manage" on public.fh_gatherings;
-create policy "fh_gatherings_admin_manage" on public.fh_gatherings for all to authenticated using (public.fh_has_role('admin')) with check (public.fh_has_role('admin'));
+create policy "fh_gatherings_admin_manage" on public.fh_gatherings for all to authenticated using (public.fh_has_role('admin') or public.fh_has_role('captain')) with check (public.fh_has_role('admin') or public.fh_has_role('captain'));
 drop policy if exists "fh_gathering_responses_read" on public.fh_gathering_responses;
-create policy "fh_gathering_responses_read" on public.fh_gathering_responses for select to authenticated using (user_id=auth.uid() or public.fh_has_role('admin'));
+create policy "fh_gathering_responses_read" on public.fh_gathering_responses for select to authenticated using (user_id=auth.uid() or public.fh_has_role('admin') or public.fh_has_role('captain'));
 drop policy if exists "fh_gathering_responses_self" on public.fh_gathering_responses;
 create policy "fh_gathering_responses_self" on public.fh_gathering_responses for insert to authenticated with check (user_id=auth.uid());
 drop policy if exists "fh_gathering_responses_update_self" on public.fh_gathering_responses;
@@ -33,7 +33,7 @@ create policy "fh_gathering_responses_update_self" on public.fh_gathering_respon
 drop policy if exists "fh_push_self" on public.fh_push_subscriptions;
 create policy "fh_push_self" on public.fh_push_subscriptions for all to authenticated using (user_id=auth.uid()) with check (user_id=auth.uid());
 drop policy if exists "fh_logo_admin_upload" on storage.objects;
-create policy "fh_logo_admin_upload" on storage.objects for insert to authenticated with check (bucket_id='football-team-logos' and public.fh_has_role('admin'));
+create policy "fh_logo_admin_upload" on storage.objects for insert to authenticated with check (bucket_id='football-team-logos' and (public.fh_has_role('admin') or public.fh_has_role('captain')));
 
 -- Exactly one team can be marked as our team. This keeps lineup selection unambiguous.
 create unique index if not exists fh_teams_one_our_team_idx

@@ -8,7 +8,7 @@ import { formatDateTime, initials } from "@/lib/format";
 import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
 import "./admin.css";
 
-type Profile = { id: string; first_name: string; last_name: string; display_name: string };
+type Profile = { id: string; first_name: string; last_name: string; display_name: string; shirt_number: number | null; preferred_position: string | null };
 type Gathering = { id: string; title: string; starts_at: string; place: string; confirmed?: number };
 type Team = { id: string; name: string; short_name: string; logo_path: string | null; is_our_team: boolean };
 type Match = { id: string; kickoff_at: string; venue: string | null };
@@ -25,12 +25,14 @@ export default function AdminPage() {
   const [meetings, setMeetings] = useState<Gathering[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
+  const [editingPlayer, setEditingPlayer] = useState<string | null>(null);
+  const [canManageRoles, setCanManageRoles] = useState(false);
 
   const load = useCallback(async () => {
     const sb = getSupabaseBrowserClient();
     if (!sb) return;
     const [profileResult, roleResult, gatheringResult, responseResult, teamResult, matchResult] = await Promise.all([
-      sb.from("fh_profiles").select("id,first_name,last_name,display_name").order("last_name"),
+      sb.from("fh_profiles").select("id,first_name,last_name,display_name,shirt_number,preferred_position").order("last_name"),
       sb.from("fh_user_roles").select("user_id,role"),
       sb.from("fh_gatherings").select("id,title,starts_at,place").order("starts_at", { ascending: false }),
       sb.from("fh_gathering_responses").select("gathering_id,response"),
@@ -42,6 +44,8 @@ export default function AdminPage() {
       const map: Record<string, string[]> = {};
       roleResult.data.forEach((entry) => { map[entry.user_id] = [...(map[entry.user_id] ?? []), entry.role]; });
       setRoles(map);
+      const { data: auth } = await sb.auth.getUser();
+      setCanManageRoles((map[auth.user?.id ?? ""] ?? []).includes("admin"));
     }
     if (gatheringResult.data) {
       const counts: Record<string, number> = {};
@@ -99,19 +103,35 @@ export default function AdminPage() {
     setNotice(saved.error ? `Nie zmieniono roli: ${saved.error.message}` : "Rola użytkownika została zmieniona."); await load();
   }
 
+  async function savePlayer(event: FormEvent<HTMLFormElement>, userId: string) {
+    event.preventDefault(); const sb = getSupabaseBrowserClient(); if (!sb) return;
+    const data = new FormData(event.currentTarget);
+    const result = await sb.rpc("fh_captain_update_player", { target_user_id: userId, new_first_name: data.get("firstName"), new_last_name: data.get("lastName"), new_shirt_number: Number(data.get("shirtNumber")), new_position: data.get("position") });
+    if (result.error) return setNotice(`Nie zapisano zawodnika: ${result.error.message}`);
+    setEditingPlayer(null); setNotice("Dane zawodnika zostały zaktualizowane."); await load();
+  }
+
+  async function deletePlayer(profile: Profile) {
+    if (!window.confirm(`Usunąć ${profile.display_name} z aplikacji i wszystkich składów?`)) return;
+    const sb = getSupabaseBrowserClient(); if (!sb) return;
+    const result = await sb.rpc("fh_captain_delete_player", { target_user_id: profile.id });
+    if (result.error) return setNotice(`Nie usunięto zawodnika: ${result.error.message}`);
+    setNotice("Zawodnik został usunięty z aplikacji i składów."); await load();
+  }
+
   const confirmed = meetings[0]?.confirmed ?? 0;
   const teamOptions = teams.map((team) => <option value={team.id} key={team.id}>{team.name}</option>);
 
   return <AppShell>
     <PageHeader eyebrow="CENTRUM DOWODZENIA" title="Panel kapitana" />
-    <div className="adminIdentity"><span>ADMIN</span><div><strong>Panel zespołu</strong><small>Dane zsynchronizowane z Supabase</small></div><i>● ONLINE</i></div>
-    <div className="segmented adminTabs">{tabs.map((name) => <button className={tab === name ? "active" : ""} onClick={() => { setTab(name); setNotice(""); }} key={name}>{name}</button>)}</div>
+    <div className="adminIdentity"><span>KAPITAN</span><div><strong>Panel zespołu</strong><small>Dane zsynchronizowane z Supabase</small></div><i>● ONLINE</i></div>
+    <div className="segmented adminTabs">{tabs.map((name) => <button className={tab === name ? "active" : ""} onClick={() => { setTab(name); setNotice(""); }} key={name}>{name === "Użytkownicy" ? "Zawodnicy" : name}</button>)}</div>
     {loading ? <p className="empty">Pobieranie danych…</p> : null}
     {tab === "Pulpit" ? <><section className="adminHero"><div><small>NAJBLIŻSZA ZBIÓRKA</small><h2>{meetings[0]?.title ?? "Brak zaplanowanej zbiórki"}</h2><p>{meetings[0] ? `${formatDateTime(meetings[0].starts_at)} · ${meetings[0].place}` : "Dodaj ją w panelu Zbiórki"}</p></div><strong>{confirmed}/{profiles.length}<small>potwierdzonych</small></strong></section><section className="adminCommandGrid"><button onClick={() => setTab("Zbiórki")}><i>01</i><span><strong>Zbiórki</strong><small>Utwórz i sprawdź obecność</small></span><b>→</b></button><button onClick={() => setTab("Wiadomości")}><i>02</i><span><strong>Wiadomości</strong><small>Wyślij komunikat</small></span><b>→</b></button><Link href="/captain/lineup"><i>03</i><span><strong>Ustaw skład</strong><small>Wybierz 7 zawodników i 5 rezerwowych</small></span><b>→</b></Link><button onClick={() => setTab("Mecze")}><i>04</i><span><strong>Mecze</strong><small>Dodaj drużyny i terminarz</small></span><b>→</b></button></section><div className="adminStatus"><span><b>{profiles.length}</b> kont</span><span><b>{meetings.length}</b> zbiórek</span><span><b>{matches.length}</b> meczów</span></div></> : null}
     {tab === "Zbiórki" ? <><form className="formCard adminForm" onSubmit={addMeeting}><div className="fieldGrid"><label>NAZWA ZBIÓRKI<input name="title" required /></label><label>DATA I GODZINA<input name="date" type="datetime-local" required /></label></div><label>MIEJSCE<input name="place" required /></label><label>INFORMACJE<textarea name="notes" placeholder="Strój, transport, dodatkowe uwagi" /></label><button className="primary wide">Utwórz zbiórkę</button></form><section className="meetingList">{meetings.map((meeting) => <article key={meeting.id}><div><small>{formatDateTime(meeting.starts_at)}</small><h3>{meeting.title}</h3><p>{meeting.place}</p></div><strong>{meeting.confirmed}/{profiles.length}<small>potwierdzonych</small></strong></article>)}</section></> : null}
     {tab === "Wiadomości" ? <form className="formCard adminForm" onSubmit={sendMessage}><div className="fieldGrid"><label>PRIORYTET<select name="priority"><option value="urgent">Pilny</option><option value="normal">Zwykły</option></select></label><label>ODBIORCY<select disabled><option>Wszyscy zawodnicy</option></select></label></div><label>TYTUŁ<input name="title" required /></label><label>TREŚĆ<textarea name="body" required /></label><button className="primary wide">Opublikuj komunikat</button></form> : null}
     {tab === "Mecze" ? <div className="adminMatchGrid"><form className="formCard adminForm" onSubmit={addTeam}><h2>Dodaj drużynę</h2><label>PEŁNA NAZWA<input name="name" required /></label><label>SKRÓT<input name="shortName" maxLength={5} required /></label><label>LOGO<input name="logo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" /></label><label className="checkLabel"><input name="ourTeam" type="checkbox" /> To jest nasza drużyna</label><button className="secondary wide">Dodaj drużynę</button></form><form className="formCard adminForm" onSubmit={addMatch}><h2>Dodaj mecz</h2><div className="fieldGrid"><label>GOSPODARZ<select name="homeTeam" required defaultValue=""><option value="" disabled>Wybierz</option>{teamOptions}</select></label><label>GOŚĆ<select name="awayTeam" required defaultValue=""><option value="" disabled>Wybierz</option>{teamOptions}</select></label></div><label>DATA I GODZINA<input name="kickoff" type="datetime-local" required /></label><label>OBIEKT<input name="venue" required /></label><button className="primary wide" disabled={teams.length < 2}>Dodaj mecz</button>{teams.length < 2 ? <small>Najpierw dodaj co najmniej dwie drużyny.</small> : null}</form></div> : null}
-    {tab === "Użytkownicy" ? <section className="adminList userRoles">{profiles.map((profile) => <article key={profile.id}><span>{initials(profile.first_name, profile.last_name)}</span><div><strong>{profile.display_name}</strong><small>{(roles[profile.id] ?? []).map((role) => roleLabels[role] ?? role).join(" · ") || "Oczekuje na rolę"}</small></div><select aria-label={`Rola ${profile.display_name}`} value={roles[profile.id]?.[0] ?? ""} onChange={(event) => void changeRole(profile.id, event.target.value)}><option value="" disabled>Nadaj rolę</option>{Object.entries(roleLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></article>)}</section> : null}
+    {tab === "Użytkownicy" ? <section className="adminList userRoles">{profiles.map((profile) => editingPlayer === profile.id ? <form className="playerEdit" key={profile.id} onSubmit={(event) => void savePlayer(event, profile.id)}><div className="fieldGrid"><label>IMIĘ<input name="firstName" defaultValue={profile.first_name} required /></label><label>NAZWISKO<input name="lastName" defaultValue={profile.last_name} required /></label><label>NUMER<input name="shirtNumber" type="number" min="0" max="99" defaultValue={profile.shirt_number ?? ""} required /></label><label>POZYCJA<select name="position" defaultValue={profile.preferred_position ?? "PO"}><option value="BR">Bramkarz</option><option value="OB">Obrońca</option><option value="PO">Pomocnik</option><option value="NA">Napastnik</option></select></label></div><div className="playerActions"><button type="button" className="secondary" onClick={() => setEditingPlayer(null)}>Anuluj</button><button className="primary">Zapisz</button></div></form> : <article key={profile.id}><span>{initials(profile.first_name, profile.last_name)}</span><div><strong>{profile.display_name}</strong><small>#{profile.shirt_number ?? "—"} · {profile.preferred_position ?? "brak pozycji"} · {(roles[profile.id] ?? []).map((role) => roleLabels[role] ?? role).join(" · ") || "Oczekuje na rolę"}</small></div>{canManageRoles ? <select aria-label={`Rola ${profile.display_name}`} value={roles[profile.id]?.[0] ?? ""} onChange={(event) => void changeRole(profile.id, event.target.value)}><option value="" disabled>Nadaj rolę</option>{Object.entries(roleLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select> : null}<div className="playerActions"><button className="secondary" onClick={() => setEditingPlayer(profile.id)}>Edytuj</button><button className="danger" onClick={() => void deletePlayer(profile)}>Usuń</button></div></article>)}</section> : null}
     {notice ? <p className="adminNotice">{notice}</p> : null}
   </AppShell>;
 }
