@@ -6,6 +6,7 @@ const roleRules: Array<[string, string[]]> = [
   ["/admin", ["captain", "admin"]],
   ["/staff", ["staff", "admin"]],
   ["/captain/lineup", ["captain", "admin"]],
+  ["/captain/tactics", ["captain", "admin"]],
   ["/player/tactics", ["player", "captain", "staff", "admin"]],
   ["/player", ["player", "captain", "staff", "admin"]],
   ["/messages", ["player", "captain", "staff", "admin"]],
@@ -15,6 +16,7 @@ const roleRules: Array<[string, string[]]> = [
 const passwordRules: Array<[string, AccessArea]> = [
   ["/admin", "captain"],
   ["/captain/lineup", "captain"],
+  ["/captain/tactics", "captain"],
   ["/staff", "staff"],
   ["/player", "player"],
   ["/messages", "player"],

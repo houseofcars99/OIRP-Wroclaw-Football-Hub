@@ -1,5 +1,1 @@
-import {redirect} from "next/navigation";
-
-export default function LegacyCaptainTacticsPage(){
-  redirect("/player/tactics");
-}
+export { default } from "@/app/player/tactics/page";
