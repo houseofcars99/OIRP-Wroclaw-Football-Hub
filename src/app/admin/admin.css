@@ -9,11 +9,13 @@
 .checkLabel { display: flex !important; align-items: center; justify-content: flex-start; }
 .checkLabel input { width: 18px !important; height: 18px; }
 .adminForm button:disabled { opacity: .45; cursor: not-allowed; }
-.captainTacticsShortcut { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin: 16px 0; padding: 20px 24px; color: white; background: var(--navy); text-decoration: none; }
+.captainTacticsShortcut { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 20px; margin: 20px 0; padding: 24px 28px; overflow: hidden; color: white; background: linear-gradient(115deg, #21174f 0%, #332269 62%, #1d153f 100%); border: 2px solid #c79a37; border-left: 8px solid #bd1e2c; border-radius: 12px; box-shadow: 0 12px 30px rgba(33,23,79,.22); text-decoration: none; transition: transform .18s ease, box-shadow .18s ease; }
+.captainTacticsShortcut::after { content: "7 × 7"; position: absolute; right: 150px; color: rgba(255,255,255,.07); font-size: 64px; font-weight: 900; line-height: 1; }
+.captainTacticsShortcut:hover { transform: translateY(-2px); box-shadow: 0 16px 36px rgba(33,23,79,.3); }
 .captainTacticsShortcut span { display: grid; gap: 5px; }
 .captainTacticsShortcut b { font-size: 18px; letter-spacing: .08em; }
 .captainTacticsShortcut small { color: rgba(255,255,255,.72); }
-.captainTacticsShortcut strong { color: var(--gold); white-space: nowrap; }
+.captainTacticsShortcut strong { position: relative; z-index: 1; padding: 11px 16px; color: #21174f; background: #d5aa48; border-radius: 7px; white-space: nowrap; }
 .playerEdit { width: 100%; padding: 18px; border: 1px solid var(--line); background: white; }
 .playerActions { display: flex; gap: 8px; align-items: center; margin-left: auto; }
 .playerActions button { min-height: 40px; padding: 0 16px; border: 0; font-weight: 800; cursor: pointer; }
