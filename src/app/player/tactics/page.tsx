@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
 import { getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
 
@@ -15,6 +16,7 @@ const initial: Token[] = [{ id: 1, number: 1, x: 50, y: 91, side: "ours" }, { id
 const emptyBoard = (): Board => ({ tokens: initial, ball: { x: 42, y: 48 }, routes: [] });
 
 export default function TacticsPage() {
+  const captainMode = usePathname().startsWith("/captain/");
   const [phase, setPhase] = useState<keyof typeof phases>("Aut");
   const [mode, setMode] = useState<keyof typeof modes>("Ofensywa");
   const [tokens, setTokens] = useState(initial);
@@ -26,22 +28,26 @@ export default function TacticsPage() {
   const [tool, setTool] = useState<"move" | "route">("move");
   const [routeStart, setRouteStart] = useState<Point | null>(null);
   const [message, setMessage] = useState("");
+  const [loaded, setLoaded] = useState(false);
+  const [hasPublishedTactic, setHasPublishedTactic] = useState(false);
 
   const load = useCallback(async () => {
-    const sb = getSupabaseBrowserClient(); if (!sb) return;
+    setLoaded(false);
+    const sb = getSupabaseBrowserClient(); if (!sb) { setMessage("Brak połączenia z Supabase."); setLoaded(true); return; }
     const { data: auth } = await sb.auth.getUser();
     const [teamResult, roleResult] = await Promise.all([
       sb.from("fh_teams").select("id").eq("is_our_team", true).limit(1).maybeSingle(),
       sb.from("fh_user_roles").select("role").eq("user_id", auth.user?.id ?? ""),
     ]);
-    const editable = (roleResult.data ?? []).some((entry) => entry.role === "captain" || entry.role === "admin"); setCanEdit(editable);
-    if (!teamResult.data) return setMessage("Administrator musi najpierw oznaczyć naszą drużynę.");
+    const editable = captainMode && (roleResult.data ?? []).some((entry) => entry.role === "captain" || entry.role === "admin"); setCanEdit(editable);
+    if (!teamResult.data) { setMessage("Kapitan musi najpierw oznaczyć naszą drużynę."); setLoaded(true); return; }
     setTeamId(teamResult.data.id);
     const result = await sb.from("fh_tactics").select("board,notes").eq("team_id", teamResult.data.id).eq("phase", phases[phase]).eq("mode", modes[mode]).order("updated_at", { ascending: false }).limit(1).maybeSingle();
     if (result.data) {
-      const board = result.data.board as Board; const storedTokens = board.tokens ?? []; setTokens([...storedTokens, ...initial.filter((token) => !storedTokens.some((stored) => stored.id === token.id))]); setBall(board.ball ?? { x: 42, y: 48 }); setRoutes(board.routes ?? []); setNotes(result.data.notes ?? ""); setMessage("");
-    } else { const board = emptyBoard(); setTokens(board.tokens); setBall(board.ball); setRoutes(board.routes); setNotes(""); }
-  }, [mode, phase]);
+      const board = result.data.board as Board; const storedTokens = board.tokens ?? []; setTokens([...storedTokens, ...initial.filter((token) => !storedTokens.some((stored) => stored.id === token.id))]); setBall(board.ball ?? { x: 42, y: 48 }); setRoutes(board.routes ?? []); setNotes(result.data.notes ?? ""); setMessage(""); setHasPublishedTactic(true);
+    } else { const board = emptyBoard(); setTokens(board.tokens); setBall(board.ball); setRoutes(board.routes); setNotes(""); setHasPublishedTactic(false); }
+    setLoaded(true);
+  }, [captainMode, mode, phase]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -71,8 +77,12 @@ export default function TacticsPage() {
     const { data: auth } = await sb.auth.getUser(); const selector = sb.from("fh_tactics").select("id").eq("team_id", teamId).eq("phase", phases[phase]).eq("mode", modes[mode]).limit(1); const existing = await selector.maybeSingle();
     const values = { team_id: teamId, name: `${phase} · ${mode}`, phase: phases[phase], mode: modes[mode], board: { tokens, ball, routes }, notes, updated_by: auth.user?.id, updated_at: new Date().toISOString() };
     const result = existing.data ? await sb.from("fh_tactics").update(values).eq("id", existing.data.id) : await sb.from("fh_tactics").insert(values);
-    setMessage(result.error ? result.error.message : "Taktyka zapisana i udostępniona zawodnikom.");
+    if (!result.error) setHasPublishedTactic(true);
+    setMessage(result.error ? result.error.message : "Taktyka opublikowana i udostępniona zawodnikom.");
   }
+
+  if (!loaded) return <main className="lineupShell"><PageHeader eyebrow={captainMode ? "KAPITAN · TYLKO DRUŻYNA" : "ZAWODNIK · PODGLĄD"} title="Tablica taktyczna" /><p className="formMessage">Pobieranie opublikowanej taktyki…</p></main>;
+  if (!captainMode && !hasPublishedTactic) return <main className="lineupShell"><PageHeader eyebrow="ZAWODNIK · PODGLĄD" title="Tablica taktyczna" /><p className="formMessage">Kapitan nie opublikował jeszcze taktyki dla tego schematu rozegrania.</p></main>;
 
   return <main className="lineupShell"><PageHeader eyebrow={canEdit ? "KAPITAN · TYLKO DRUŻYNA" : "ZAWODNIK · PODGLĄD"} title="Tablica taktyczna" />
     {message ? <p className="formMessage">{message}</p> : null}
@@ -80,6 +90,6 @@ export default function TacticsPage() {
     <div className="tacticsToolbar"><div className="modeTabs">{Object.keys(modes).map((name) => <button className={mode === name ? "active" : ""} onClick={() => setMode(name as keyof typeof modes)} key={name}>{name}</button>)}</div>{canEdit ? <div className="boardTools"><button className={tool === "move" ? "active" : ""} onClick={() => setTool("move")}>Przesuwaj</button><button className={tool === "route" ? "active" : ""} onClick={() => setTool("route")}>Rysuj ruch</button></div> : null}</div>
     <p className="boardHint">{canEdit ? tool === "move" ? "Przeciągaj zawodników i piłkę." : routeStart ? "Dotknij miejsca końcowego strzałki." : "Dotknij początku i końca ruchu." : "Taktyka opublikowana przez kapitana."}</p>
     <section className={`pitch tacticsPitch tool-${tool}`} onPointerDown={boardTap}><div className="halfway"/><div className="centerCircle"/><div className="box top"/><div className="box bottom"/><svg className="routes" viewBox="0 0 100 100" preserveAspectRatio="none"><defs><marker id="arrow" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto"><path d="M0,0 L5,2.5 L0,5 z"/></marker></defs>{routes.map((route, index) => <line key={`${route.from.x}-${route.to.x}-${index}`} x1={route.from.x} y1={route.from.y} x2={route.to.x} y2={route.to.y} markerEnd="url(#arrow)" />)}</svg>{tokens.map((token) => <button disabled={!canEdit} onPointerDown={(event) => drag(event, token.id)} className={`tacticDot ${token.side}`} style={{ left: `${token.x}%`, top: `${token.y}%` }} key={token.id}>{token.number}</button>)}<button disabled={!canEdit} aria-label="Piłka" className="tacticBall" style={{ left: `${ball.x}%`, top: `${ball.y}%` }} onPointerDown={moveBall}>⚽</button></section>
-    {canEdit ? <><div className="boardActions"><button onClick={() => { setRoutes([]); setRouteStart(null); }}>Wyczyść strzałki</button><button onClick={() => { const board = emptyBoard(); setTokens(board.tokens); setBall(board.ball); setRoutes(board.routes); }}>Resetuj tablicę</button></div><section className="formCard compact"><label>INSTRUKCJA<textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Opisz ustawienie i zadania zawodników…" /></label><button className="primary wide" onClick={() => void save()}>Zapisz taktykę</button></section></> : <section className="formCard compact"><label>INSTRUKCJA<textarea value={notes} readOnly /></label></section>}
+    {canEdit ? <><div className="boardActions"><button onClick={() => { setRoutes([]); setRouteStart(null); }}>Wyczyść strzałki</button><button onClick={() => { const board = emptyBoard(); setTokens(board.tokens); setBall(board.ball); setRoutes(board.routes); }}>Resetuj tablicę</button></div><section className="formCard compact"><label>INSTRUKCJA<textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Opisz ustawienie i zadania zawodników…" /></label><button className="primary wide" onClick={() => void save()}>Opublikuj taktykę</button></section></> : <section className="formCard compact"><label>INSTRUKCJA<textarea value={notes} readOnly /></label></section>}
   </main>;
 }
